@@ -1,0 +1,56 @@
+{
+  "family": "checkout-api",
+  "networkMode": "bridge",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "4096",
+  "taskRoleArn": "arn:aws:iam::123456789012:role/checkout-api-task-role",
+  "runtimePlatform": {
+    "cpuArchitecture": "X86_64",
+    "operatingSystemFamily": "LINUX"
+  },
+  "containerDefinitions": [
+    {
+      "name": "checkout-api",
+      "image": "123456789012.dkr.ecr.us-east-1.amazonaws.com/checkout-api:latest",
+      "essential": true,
+      "memory": 6144,
+      "privileged": true,
+      "links": ["redis"],
+      "portMappings": [
+        {
+          "containerPort": 8080,
+          "hostPort": 80,
+          "protocol": "tcp"
+        }
+      ],
+      "environment": [
+        { "name": "NODE_ENV", "value": "production" },
+        { "name": "PORT", "value": "8080" },
+        { "name": "REDIS_URL", "value": "redis://redis:6379" },
+        { "name": "DATABASE_URL", "value": "postgres://admin:Sup3rS3cret!@checkout-db.cluster-abc123.us-east-1.rds.amazonaws.com:5432/checkout" }
+      ],
+      "secrets": [
+        {
+          "name": "STRIPE_API_KEY",
+          "valueFrom": "arn:aws:secretsmanager:us-east-1:123456789012:secret:prod/checkout/stripe-key"
+        }
+      ],
+      "healthCheck": {
+        "command": ["CMD-SHELL", "curl -f http://localhost:3000/health || exit 1"],
+        "interval": 10,
+        "timeout": 5,
+        "retries": 2,
+        "startPeriod": 0
+      },
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/checkout-api",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}
